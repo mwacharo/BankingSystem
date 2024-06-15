@@ -1,0 +1,34 @@
+[
+    {
+        "fname": "Adam",
+        "lname": "Smith",
+        "address": ["14", "Wilcot Street", "Bath", "B5 5RT"],
+        "account_no": 1234,
+        "balance": 5000.00,
+        "account_type": "savings"
+    },
+    {
+        "fname": "David",
+        "lname": "White",
+        "address": ["60", "Holborn Viaduct", "London", "EC1A 2FD"],
+        "account_no": 1235,
+        "balance": 3200.00,
+        "account_type": "business"
+    },
+    {
+        "fname": "Alice",
+        "lname": "Churchil",
+        "address": ["5", "Cardigan Street", "Birmingham", "B4 7BD"],
+        "account_no": 1236,
+        "balance": 18000.00,
+        "account_type": "savings"
+    },
+    {
+        "fname": "Ali",
+        "lname": "Abdallah",
+        "address": ["44", "Churchill Way West", "Basingstoke", "RG21 6YR"],
+        "account_no": 1237,
+        "balance": 40.00,
+        "account_type": "business"
+    }
+]
