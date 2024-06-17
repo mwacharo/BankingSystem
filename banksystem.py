@@ -15,15 +15,24 @@ class BankSystem(object):
             with open('customers.json', 'r') as file:
                 customers_data = json.load(file)
                 for data in customers_data:
-                    customer = CustomerAccount(
-                        data['fname'], data['lname'], data['address'], data['account_no'],
-                        data['balance'], data['account_type']
-                    )
+                    accounts = []
+                    for acc in data['accounts']:
+                        account_no = acc['account_no']
+                        balance = acc['balance']
+                        account_type = acc['account_type']
+                        if account_type == 'savings':
+                            account = SavingsAccount(account_no, balance)
+                        elif account_type == 'current':
+                            account = CurrentAccount(account_no, balance)
+                        elif account_type == 'business':
+                            account = BusinessAccount(account_no, balance)
+                        accounts.append(account)
+                    customer = CustomerAccount(data['fname'], data['lname'], data['address'], accounts)
                     self.accounts_list.append(customer)
         except FileNotFoundError:
             print("No customer data file found. Starting with empty data.")
 
-        # Create admins (hard-coded for now)
+        # Create admins -
         admins = [
             ("Julian", "Padget", ["12", "London Road", "Birmingham", "B95 7TT"], "id1188", "1441", True),
             ("Cathy", "Newman", ["47", "Mars Street", "Newcastle", "NE12 6TZ"], "id3313", "2442", False)
@@ -90,16 +99,75 @@ class BankSystem(object):
                 continue
         print("\n Thank-You for stopping by the bank!")
 
+    # def transferMoney(self, sender_lname, receiver_lname, receiver_account_no, amount):
+    #     sender = self.search_customers_by_name(sender_lname)
+    #     receiver = self.search_customers_by_name(receiver_lname)
+    #
+    #     if sender and receiver:
+    #         # Prompt sender to select an account
+    #         print(f"\nSelect sender's account:")
+    #         sender_accounts = sender.get_accounts()
+    #         for i, account in enumerate(sender_accounts, start=1):
+    #             print(f"{i}) Account No: {account.get_account_by_no()}, Type: {account.get_account_type()}")
+    #
+    #         try:
+    #             choice = int(input("Enter your choice: ")) - 1
+    #             if 0 <= choice < len(sender_accounts):
+    #                 sender_account = sender_accounts[choice]
+    #                 sender_account_no = sender_account.get_account_no()
+    #
+    #                 if receiver.get_account_by_no(receiver_account_no) and sender_account_no:
+    #                     sender_balance = sender.get_balance(sender_account_no)
+    #                     if sender_balance >= amount:
+    #                         sender.withdraw(sender_account_no, amount)
+    #                         receiver.deposit(receiver_account_no, amount)
+    #                         print("Transfer successful.")
+    #                     else:
+    #                         print("Insufficient funds in sender's account.")
+    #                 else:
+    #                     print("Invalid sender or receiver account details.")
+    #             else:
+    #                 print("Invalid choice.")
+    #
+    #         except ValueError:
+    #             print("Invalid input. Please enter a valid choice.")
+    #
+    #     else:
+    #         print("Invalid sender or receiver details.")
+
     def transferMoney(self, sender_lname, receiver_lname, receiver_account_no, amount):
         sender = self.search_customers_by_name(sender_lname)
         receiver = self.search_customers_by_name(receiver_lname)
-        if sender and receiver and receiver.get_account_no() == int(receiver_account_no):
-            if sender.get_balance() >= amount:
-                sender.withdraw(amount)
-                receiver.deposit(amount)
-                print("Transfer successful.")
-            else:
-                print("Insufficient funds in sender's account.")
+
+        if sender and receiver:
+            # Prompt sender to select an account
+            print(f"\nSelect sender's account:")
+            sender_accounts = sender.get_accounts()
+            for i, account in enumerate(sender_accounts, start=1):
+                print(f"{i}) Account No: {account.get_account_no()}, Type: {account.get_account_type()}")
+
+            try:
+                choice = int(input("Enter your choice: ")) - 1
+                if 0 <= choice < len(sender_accounts):
+                    sender_account = sender_accounts[choice]
+                    sender_account_no = sender_account.get_account_no()
+
+                    if receiver.get_account_by_no(receiver_account_no):
+                        sender_balance = sender.get_balance(sender_account_no)
+                        if sender_balance >= amount:
+                            sender.withdraw(sender_account_no, amount)
+                            receiver.deposit(receiver_account_no, amount)
+                            print("Transfer successful.")
+                        else:
+                            print("Insufficient funds in sender's account.")
+                    else:
+                        print("Invalid receiver account details.")
+                else:
+                    print("Invalid choice.")
+
+            except ValueError:
+                print("Invalid input. Please enter a valid choice.")
+
         else:
             print("Invalid sender or receiver details.")
 
@@ -112,14 +180,16 @@ class BankSystem(object):
 
     def admin_menu(self, admin_obj):
         print(" ")
-        print("Welcome Admin %s %s : Available options are:" % (admin_obj.get_first_name(), admin_obj.get_last_name()))
+        print(f"Welcome Admin {admin_obj.get_first_name()} {admin_obj.get_last_name()} : Available options are:")
         print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("1) Transfer money")
         print("2) Customer account operations & profile settings")
         print("3) Delete customer")
         print("4) Print all customers detail")
         print("5) Print report")
-        print("6) Sign out")
+        print("6) Update Admin Own Information")
+        print("7) Print admin details")
+        print("8) Sign out")
         print(" ")
         option = input("Choose your option: ")
         try:
@@ -169,6 +239,12 @@ class BankSystem(object):
                 loop = 0
                 self.generate_management_report()
             elif choice == 6:
+                # loop = 0
+                self.update_admin_info(admin_obj)
+            elif choice == 7:
+                # loop = 0
+                self.print_admin_details(admin_obj)
+            elif choice == 8:
                 loop = 0
             elif choice == -1:
                 continue
@@ -182,42 +258,38 @@ class BankSystem(object):
             c.print_details()
             print("------------------------")
 
-    # def generate_management_report(self):
-    #     total_customers = len(self.accounts_list)
-    #     total_balance = sum(customer.get_balance() for customer in self.accounts_list)
-    #     total_interest = sum(customer.get_balance() * customer.get_interest_rate() for customer in self.accounts_list)
-    #     total_overdrafts = sum(
-    #         max(0, customer.get_balance() - customer.get_overdraft_limit())
-    #         for customer in self.accounts_list
-    #     )
-    #
-    #     report = {
-    #         "total_customers": total_customers,
-    #         "total_balance": total_balance,
-    #         "total_interest_payable": total_interest,
-    #         "total_overdrafts": total_overdrafts
-    #     }
-    #
-    #     print("Management Report:")
-    #     print(f"Total Customers: {report['total_customers']}")
-    #     print(f"Total Balance: {report['total_balance']}")
-    #     print(f"Total Interest Payable: {report['total_interest_payable']}")
-    #     print(f"Total Overdrafts: {report['total_overdrafts']}")
-    #
-    #     return report
+    def update_admin_info(self, admin_obj):
+        print("\nUpdate Admin Information:")
+        new_fname = input("Enter new first name (leave blank to keep current): ")
+        if new_fname:
+           admin_obj.update_first_name(new_fname)
+        new_lname = input("Enter new last name (leave blank to keep current): ")
+        if new_lname:
+           admin_obj.update_last_name(new_lname)
+
+        new_address = input("Enter new address (leave blank to keep current): ")
+        if new_address:
+           admin_obj.update_address(new_address.split(","))
+
+    print("Admin information updated successfully.")
+
+    def print_admin_details(self, admin_obj):
+        print("\nAdmin Details:")
+        admin_obj.print_details()
+
     def generate_management_report(self):
         total_customers = len(self.accounts_list)
-        total_balance = sum(customer.get_balance() for customer in self.accounts_list)
-        total_interest = sum(customer.get_balance() * customer.get_interest_rate() for customer in self.accounts_list)
+        total_balance = sum(account.get_balance() for customer in self.accounts_list for account in customer.accounts)
+        total_interest = sum(account.get_balance() * account.get_interest_rate() for customer in self.accounts_list for account in customer.accounts)
         total_overdrafts = sum(
-        max(0, customer.get_balance() - customer.get_overdraft_limit())
-        for customer in self.accounts_list
+             max(0, account.get_balance() - account.get_overdraft_limit())
+             for customer in self.accounts_list for account in customer.accounts
         )
         report = {
-             "total_customers": total_customers,
-             "total_balance": total_balance,
-             "total_interest_payable": total_interest,
-             "total_overdrafts": total_overdrafts
+            "total_customers": total_customers,
+            "total_balance": total_balance,
+            "total_interest_payable": total_interest,
+            "total_overdrafts": total_overdrafts
         }
 
         print("Management Report:")
@@ -229,5 +301,8 @@ class BankSystem(object):
         return report
 
 
-app = BankSystem()
-app.run_main_options()
+
+
+if __name__ == "__main__":
+    app = BankSystem()
+    app.run_main_options()
